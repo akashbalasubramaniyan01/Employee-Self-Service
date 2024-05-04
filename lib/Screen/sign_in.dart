@@ -1,10 +1,14 @@
 import 'dart:convert';
 
+import 'package:employee_self_service/Screen/model/loginmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import '../Utils/colors.dart';
+import 'main_screen.dart';
 
 
 class SignIn extends StatefulWidget {
@@ -15,6 +19,7 @@ class SignIn extends StatefulWidget {
 }
 
 class _SignInState extends State<SignIn> {
+  List <Loginmodel>LoginModels=[];
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   Widget build(BuildContext context) {
@@ -45,11 +50,7 @@ class _SignInState extends State<SignIn> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                Text(
-                  "Wellcome back vou've\nbeen missed!",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 27, color: textColor2, height: 1.2),
-                ),
+                Image.asset("assets/login (2).png",width: 10,),
                 SizedBox(height: size.height * 0.04),
                 // for username and password
                 myTextField("Enter username", Colors.white,emailController),
@@ -97,7 +98,7 @@ class _SignInState extends State<SignIn> {
                           ),
                         ),
                       ),
-                      SizedBox(height: size.height * 0.06),
+                      SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -121,16 +122,9 @@ class _SignInState extends State<SignIn> {
                           ),
                         ],
                       ),
-                      SizedBox(height: size.height * 0.06),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          socialIcon("images/google.png"),
-                          socialIcon("images/apple.png"),
-                          socialIcon("images/facebook.png"),
-                        ],
-                      ),
-                      SizedBox(height: size.height * 0.07),
+                      SizedBox(height: 20),
+
+
                       Text.rich(
                         TextSpan(
                             text: "Not a member? ",
@@ -208,11 +202,11 @@ class _SignInState extends State<SignIn> {
     );
   }
 
-  void login(String email , password) async {
+ login(String email , password)  async {
 
     try{
 
-      Response response = await http.put(
+       final response = await http.put(
           Uri.parse('http://122.165.61.194/essapi/getin'),
           body: jsonEncode(
               {
@@ -238,7 +232,11 @@ class _SignInState extends State<SignIn> {
 
         var data = jsonDecode(response.body.toString());
 
-        print('Login successfully$data');
+        LoginModels = [data]
+            .map((taskJson) => Loginmodel.fromJson(taskJson))
+            .toList();
+        print('Login successfully${[data]}');
+       Get.to(MainScreen(LoginModels));
 
       }else {
         print('failed');
