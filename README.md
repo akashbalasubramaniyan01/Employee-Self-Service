@@ -1,8 +1,9 @@
 # employee_self_service
 
-A new Flutter project.
+Employee Attandance portal
 
-## Getting Started
+
+## Getting 
 
 This project is a starting point for a Flutter application.
 
