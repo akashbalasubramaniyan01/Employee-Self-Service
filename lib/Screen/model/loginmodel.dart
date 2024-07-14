@@ -29,25 +29,29 @@ class Loginmodel {
 
 class Data {
   Data({
+    required this.usrid,
     required this.name,
     required this.email,
     required this.role,
     required this.head,
   });
+  late final String usrid;
   late final String name;
   late final String email;
   late final String role;
   late final String head;
 
   Data.fromJson(Map<String, dynamic> json){
-    name = json['name'];
-    email = json['email'];
-    role = json['role'];
-    head = json['head'];
+    usrid = json['usrid']??"";
+    name = json['name']??"";
+    email = json['email']??"";
+    role = json['role']??"";
+    head = json['head']??'';
   }
 
   Map<String, dynamic> toJson() {
     final _data = <String, dynamic>{};
+    _data['usrid'] = usrid;
     _data['name'] = name;
     _data['email'] = email;
     _data['role'] = role;

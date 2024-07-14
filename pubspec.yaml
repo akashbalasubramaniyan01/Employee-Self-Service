@@ -30,16 +30,39 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  syncfusion_flutter_datepicker: ^26.1.38
 
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   http: ^1.2.1
+  flutter_svg: ^2.0.10+1
   persistent_bottom_nav_bar: ^5.0.2
   get: ^4.6.6
   google_fonts: ^4.0.2
   intl: ^0.19.0
+  introduction_screen: ^3.1.14
+  global_configuration: ^2.0.0-nullsafety.1
+  flashy_tab_bar2: ^0.0.10
+  shared_preferences: ^2.2.3
+  http_auth: ^1.0.4
+  numberpicker: ^2.1.2
+  quickalert: ^1.1.0
+  awesome_snackbar_content: ^0.1.3
+  flutter_launcher_icons: ^0.13.1
+  html: ^0.15.0
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/Applogo.jpg"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
 
 dev_dependencies:
   flutter_test:

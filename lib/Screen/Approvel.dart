@@ -15,13 +15,13 @@ import '../Utils/colors.dart';
 import 'model/loginmodel.dart';
 
 class Aprovel extends StatefulWidget {
-  final List<Loginmodel> loginModels;
+  //final List<Loginmodel> loginModels;
   /*var AllTickets;
   int i;
   String TicketName;
   final VoidCallback onBack;
   final List<LoginModel> loginModels;*/
-  Aprovel(this.loginModels/*this.AllTickets,this.i,this.TicketName,this.loginModels,{required this.onBack}*/);
+  Aprovel(/*this.loginModels*//*this.AllTickets,this.i,this.TicketName,this.loginModels,{required this.onBack}*/);
 
   @override
   State<Aprovel> createState() => _AprovelState();
@@ -61,7 +61,7 @@ class _AprovelState extends State<Aprovel> {
   @override
   void initState() {
     login();
-    print(widget.loginModels[0].jwt);
+    //print(widget.loginModels[0].jwt);
   }
 
 
@@ -69,14 +69,11 @@ class _AprovelState extends State<Aprovel> {
 
     try{
 
-      final response = await http.get(
-
-          Uri.parse('http://122.165.61.194/essapi/leaveyet2approve/psovcco'),
+      final response = await http.get(Uri.parse('http://122.165.61.194/essapi/leaveyet2approve/psovcco'),
 
           headers: {
             'Content-Type': ' application/json',
-            'Authorization': 'Bearer ${widget.loginModels[0].jwt}'
-
+            //'Authorization': 'Bearer ${widget.loginModels[0].jwt}'
           }
       );
 

@@ -9,19 +9,36 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Utils/colors.dart';
 import 'package:global_configuration/global_configuration.dart';
-import 'package:html/parser.dart' show parse;
+import 'package:html/parser.dart' show parse;  // Add this import
 
-import 'baseUrlPage.dart';  // Add this import
-class SignIn extends StatefulWidget {
 
-  const SignIn({super.key});
+
+class AppConfig {
+  static final AppConfig _instance = AppConfig._internal();
+
+  factory AppConfig() {
+    return _instance;
+  }
+
+  AppConfig._internal();
+
+  String baseUrl = "";
+
+  void updateBaseUrl(String newBaseUrl) {
+    baseUrl = newBaseUrl;
+    print("baseUrl$baseUrl");
+  }
+}
+class BaseUrl extends StatefulWidget {
+
+  const BaseUrl({super.key});
 
   @override
 
-  State<SignIn> createState() => _SignInState();
+  State<BaseUrl> createState() => _BaseUrlState();
 }
 
-class _SignInState extends State<SignIn> {
+class _BaseUrlState extends State<BaseUrl> {
   List <Loginmodel> LoginModels = [];
 
   TextEditingController emailController = TextEditingController();
@@ -30,20 +47,37 @@ class _SignInState extends State<SignIn> {
   TextEditingController BaseUrl = TextEditingController();
   bool _passwordVisible= false;
 
-  void initState() {
-    super.initState();
-    _passwordVisible = false;
-    Url();
+  String? _errorMessage;
+  bool _validateUrl(String url) {
+    final urlPattern = r'^(http:\/\/|https:\/\/).*$';
+    final result = RegExp(urlPattern).hasMatch(url);
+    return result;
   }
-  String urls="";
-  Url() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      urls = prefs.getString('url') ?? "";
+
+  void _handleSubmit() {
+    setState(() async {
+   /*   _errorMessage = null; // Reset error message
+      if (!_validateUrl(BaseUrl.text)) {
+        _errorMessage = 'Please enter a valid URL starting with http:// or https://';
+      } else */
+      {
+         if(BaseUrl.text=="https://ri-square.com:4430/") {
+           final prefs = await SharedPreferences.getInstance();
+
+           print('URL submitted: ${BaseUrl.text}');
+           prefs.setString('url', BaseUrl.text);
+           Get.toNamed('/SignIn');
+         }
+        // Add your submit logic here
+      }
     });
-
   }
-
+  @override
+  void initState() {
+    _passwordVisible = false;
+    // TODO: implement initState
+    super.initState();
+  }
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
@@ -63,7 +97,7 @@ class _SignInState extends State<SignIn> {
               children: [
                 SizedBox(height: size.height * 0.03),
                 Text(
-                  "Sign In",
+                  "Base Url",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w300,color:Colors.black,fontSize:46),
                 ),
@@ -73,9 +107,34 @@ class _SignInState extends State<SignIn> {
                     height: 200,
                     child: Image.asset("assets/Loginpage.jpg",)),
                 //SizedBox(height: size.height * 0.01),
-
-                myTextField("Enter Mobile Number", Colors.white,emailController),
-                myTextField("Password", Colors.black26, passwordController, isPassword: true),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 25,
+                    vertical: 10,
+                  ),
+                  child: TextField(
+                    controller: BaseUrl,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 22,
+                      ),
+                      fillColor: Colors.white,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      hintText: "Enter Base Url",
+                      hintStyle: const TextStyle(
+                        color: Colors.black45,
+                        fontSize: 19,
+                      ),
+                      errorText: _errorMessage,
+                    ),
+                  ),
+                ),
+               
 
 
                 SizedBox(height: size.height * 0.07),
@@ -89,50 +148,20 @@ class _SignInState extends State<SignIn> {
                         onTap: () {
 
 
-                          if(emailController.text==""){
-                            showDialog(
-                              context: context,
-                              builder: (_) {
-                                return  AlertDialog(
-                                  elevation: 14,
-                                  backgroundColor: backgroundColor1,
-                                  title: Center(child: Text('Please Enter the Email', style: GoogleFonts.quicksand(textStyle: Theme.of(context).textTheme.bodyMedium))),
-
-                                );
-                              },
-                            );
-                          }
-                          else if(passwordController.text==""){
-                            showDialog(
-                              context: context,
-                              builder: (_) {
-                                return  AlertDialog(
-                                  elevation: 14,
-                                  backgroundColor:backgroundColor1,
-                                  title: Text('Please Enter the Password',style: GoogleFonts.quicksand(textStyle: Theme.of(context).textTheme.bodyMedium)),
-
-                                );
-                              },
-                            );
-                          }
-                          else{
-                            login(emailController.text,passwordController.text);
-
-                          }
-
+                          ValidateUrl(context);
 
                         },
                         child: Container(
                           width: size.width,
-                          padding:  EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
                           decoration: BoxDecoration(
                             color: buttonColor,
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          child:  Center(
+                          child: const Center(
                             child: Text(
-                              "Sign In",
-                              style:  GoogleFonts.poppins(
+                              "Submit",
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                                 fontSize: 22,
@@ -240,110 +269,57 @@ class _SignInState extends State<SignIn> {
     });
 
   }
- login(String email , password)  async {
+  Future<void> ValidateUrl(BuildContext context, ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('url', "https://${BaseUrl.text}.ri-square.com/");
 
-   final prefs = await SharedPreferences.getInstance();
-    try{
-
-      var url = "${urls}getin";
+      print('URL submitted: ${BaseUrl.text}');
+      var url = "https://${BaseUrl.text}.ri-square.com/welcome";
       print(url);
-       final response = await http.put(
-          Uri.parse(url),
-          body: jsonEncode(
-              //hrms10002@gmail.com
-              {
-                "userid" : email,
-                "password": password,
-                "count": 0
-              }
-          ),
-          headers: {
-            'Content-Type': 'application/json',
-          }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       );
-      print(jsonEncode(
-          {
-            'email': email,
-            'password': password,
-            "count" :0
-          }
-      ),);
+
       print(response.statusCode);
+      print(response.body);
 
-      if(response.statusCode == 200)
-      {
-
-        var data = jsonDecode(response.body.toString());
-
-        LoginModels = [data]
-            .map((taskJson) => Loginmodel.fromJson(taskJson))
-            .toList();
-        print('Login successfully${[data]}');
-
-        Get.toNamed('/MainScreen', arguments: LoginModels);
-        /*Get.toNamed('/MainScreen', arguments: {
-          'id': 0,
-          'loginModels': LoginModels,
-        });*/
-        prefs.setString('UserName', email);
-        prefs.setString('PassWord', password);
+      if (response.statusCode == 200) {
+        Get.toNamed('/SignIn');
+      } else {
+        _showErrorBanner(context, response.statusCode, "Invalid Url");
       }
-      else if(response.statusCode==400){
-        var jsonResponse = json.decode(response.body);
-        final materialBanner = MaterialBanner(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          forceActionsBelow: false,
-          content: AwesomeSnackbarContent(
-            title: response.statusCode.toString(),
-            message: jsonResponse['error'],
-            contentType: ContentType.failure,
-            inMaterialBanner: true,
-          ),
-          actions: const [SizedBox.shrink()],
-        );
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentMaterialBanner()
-          ..showMaterialBanner(materialBanner);
-
-        Future.delayed(const Duration(seconds: 2), () {
-          setState(() {
-            ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-          });
-        });
-      }
-
-
-      else {
-        var jsonResponse = json.decode(response.body);
-        final materialBanner = MaterialBanner(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          forceActionsBelow: false,
-          content: AwesomeSnackbarContent(
-            title: response.statusCode.toString(),
-            message: jsonResponse['message'],
-            contentType: ContentType.failure,
-            inMaterialBanner: true,
-          ),
-          actions: const [SizedBox.shrink()],
-        );
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentMaterialBanner()
-          ..showMaterialBanner(materialBanner);
-
-        Future.delayed(const Duration(seconds: 2), () {
-          setState(() {
-            ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-          });
-        });
-
-      }
-    }catch(e){
+    } catch (e) {
       print(e.toString());
+      _showErrorBanner(context, null, "Invalid Url Please Check");
     }
+  }
+
+  void _showErrorBanner(BuildContext context, int? statusCode, String message) {
+    final materialBanner = MaterialBanner(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      forceActionsBelow: false,
+      content: AwesomeSnackbarContent(
+        title: statusCode != null ? statusCode.toString() : 'Error',
+        message: message,
+        contentType: ContentType.failure,
+        inMaterialBanner: true,
+      ),
+      actions: const [SizedBox.shrink()],
+    );
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentMaterialBanner()
+      ..showMaterialBanner(materialBanner);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+    });
   }
 }
 

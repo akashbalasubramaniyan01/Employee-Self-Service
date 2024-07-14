@@ -2,26 +2,33 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-
+import 'package:quickalert/quickalert.dart';
 import 'dart:io';
 
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Utils/colors.dart';
+import 'baseUrlPage.dart';
+import 'model/LeaveDetailsModel.dart';
 import 'model/loginmodel.dart';
 
 class TicketDeatils extends StatefulWidget {
-  final List<Loginmodel> loginModels;
+  //final List<Loginmodel> loginModels;
   /*var AllTickets;
   int i;
   String TicketName;
   final VoidCallback onBack;
   final List<LoginModel> loginModels;*/
-   TicketDeatils(this.loginModels/*this.AllTickets,this.i,this.TicketName,this.loginModels,{required this.onBack}*/);
+   TicketDeatils(/*this.loginModels*//*this.AllTickets,this.i,this.TicketName,this.loginModels,{required this.onBack}*/);
 
   @override
   State<TicketDeatils> createState() => _TicketDeatilsState();
@@ -56,62 +63,163 @@ class _TicketDeatilsState extends State<TicketDeatils> {
   bool ActiveButton = false;
   late Timer _timer;
 var AllTickets = [];
+
+  List<dynamic> allTickets = [];
   //var NameAssignList=[];
   List<Map<int, String>> NameAssignList = []; // Sample data
   @override
   void initState() {
-    login();
-    print(widget.loginModels[0].jwt);
+    super.initState();
+
+    Url();
   }
+  String urls="";
+  Url() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      urls = prefs.getString('url') ?? "";
+    });
+    Details();
+}
+  
+  
+  Details() async {
+    final List<Loginmodel> loginModels = Get.arguments;
+    print(loginModels[0].data.usrid);
+    try {
+   //   if(loginModels[0].data.role=="USER")
 
+        var url = "${urls}viewleavecard";
 
-  login()  async {
-
-    try{
-
-      final response = await http.put(
-
-          Uri.parse('http://122.165.61.194/essapi/viewleavecard'),
-          body: jsonEncode(
-              {
-                "empcode": "10014",
-                "limit": null,
-                "start": null
-              }
-          ),
+        print(loginModels[0].data.usrid);
+        print(url);
+        print(loginModels[0].jwt);
+        final response = await http.put(
+          Uri.parse(url),
+          body: jsonEncode({
+            "empcode": loginModels[0].data.usrid,
+            "limit": 20,
+            "start": 0
+          }),
           headers: {
-            'Content-Type': ' application/json',
-            'Authorization': 'Bearer ${widget.loginModels[0].jwt}'
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${loginModels[0].jwt}'
+          },
+        );
+        print(jsonEncode({
+          "empcode": loginModels[0].data.usrid,
+          "limit": 20,
+          "start": 0
+        }),);
+print(response.statusCode);
+print(response.body);
+        if (response.statusCode == 200) {
+          var data = jsonDecode(response.body.toString());
+          var datas = data['data'];
+          setState(() {
+            allTickets =
+            List<Ticket>.from(datas.map((item) => Ticket.fromJson(item)));
+          });
+          print('Data fetched successfully: $allTickets');
+        } else {
+          print('Failed to fetch data');
+        }
 
-          }
-      );
 
-      print(response.statusCode);
-      print(response.body);
-
-      if(response.statusCode == 200){
-
-        var data = jsonDecode(response.body.toString());
-           var datas = data['data'];
-      setState(() {
-        AllTickets.addAll(datas);
-      });
-        //Get.to(MainScreen(LoginModels));
-        print('failed$AllTickets');
-      }else {
-        print('failed');
-      }
-    }catch(e){
-      print(e.toString());
+    } catch (e) {
+      print('An error occurred: $e');
     }
+  }
+  Future<void> approveLeave(String docno, String authtype, jwt) async {
+
+    final String url = '${urls}essapi/leaveapprove';
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ${jwt}'
+    };
+
+    final Map<String, String> body = {
+      'docno': docno,
+      'authtype': authtype
+    };
+
+    final http.Response response = await http.put(
+      Uri.parse(url),
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    String message;
+    if (response.statusCode == 200) {
+      message = 'Leave approved successfully.';
+      Navigator.of(context).pop();
+      Get.showSnackbar(
+        GetSnackBar(
+          title: "Leave Request",
+          message: message,
+          icon: const Icon(Icons.refresh),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      Details();
+    } else {
+      message = 'Failed to approve leave. Status code: ${response.statusCode}';
+    }
+
+
+  }
+  Future<void> CancelLeave(String docno, String jwt) async {
+
+    final String url = '${urls}leavecancel/';
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ${jwt}'
+    };
+
+    final Map<String, String> body = {
+      'docno': docno,
+
+    };
+
+    final http.Response response = await http.put(
+      Uri.parse(url),
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    String message;
+    if (response.statusCode == 200) {
+      message = 'Leave Cancel successfully.';
+      Navigator.of(context).pop();
+      Get.showSnackbar(
+        GetSnackBar(
+          title: "Leave Cancel",
+          message: message,
+          icon: const Icon(Icons.refresh),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      Details();
+    } else {
+      message = 'Failed to approve leave. Status code: ${response.statusCode}';
+    }
+
+
+  }
+  String DateTimeSet(String date) {
+    DateTime parseDate = DateFormat("yyyy-MM-dd").parse(date);
+    var outputFormat = DateFormat('dd-MM-yyyy');
+    var outputDate = outputFormat.format(parseDate);
+    return outputDate;
   }
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final loginModels = Get.arguments; // Retrieve the login models passed as arguments
     return  Scaffold(
       appBar: AppBar(
        title: Center(
          child: Text(
-           'E S S                             ',
+           'Employee Self Service                           ',
            style:  GoogleFonts.poppins(fontWeight: FontWeight.bold,color:Colors.cyan,fontSize:13),
 
          ),
@@ -143,368 +251,156 @@ var AllTickets = [];
               children: [
                 Container(
                   width: size.width,
+                  height: 60.0,
 
-                  decoration: const BoxDecoration(color: Colors.white,boxShadow: [BoxShadow(blurRadius: 3,color: Colors.black12)]),
-               child:  Padding(
-                 padding: const EdgeInsets.all(8),
-                 child: Center(
-                   child: Row(
-                     mainAxisAlignment: MainAxisAlignment.center,
-                     children: [
-                       Text(
-                         'All Leave List',
-                         style:  GoogleFonts.poppins(fontWeight: FontWeight.bold,color:Colors.cyan,fontSize:13),
+                  decoration: new BoxDecoration(
+                      color: const Color(0xFF66BB6A),
+                      boxShadow: [new BoxShadow(
+                        color: Colors.grey.withOpacity(0.7),
+                        blurRadius: 27.0,
+                      ),
+                      ]
+                  ),
+                  child: Center(child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset('assets/leave-management-3.jpg', width: 49,),
+                      Container(width: 13,),
+                      Text("All Leave Details", style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 20)),
 
-                       ),
-                       Container(width: 10,),
 
-                     ],
-                   ),
-                 ),
-               ),
+                    ],
+                  )),
                 ),
+
                  Container(height: 5,),
-                  for (int i =0; i<AllTickets.length;i++)
-                  Container(
-                    margin: EdgeInsets.all(10),
-                   decoration:BoxDecoration(        borderRadius: BorderRadius.circular(10.0),
-                       color:  Colors.white,
-                       boxShadow: [ BoxShadow(color: Colors.black12,blurRadius: 2)]) ,
-                      child: Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
+                allTickets.isEmpty
+                    ? Center(child: CircularProgressIndicator())
+                    : Container(
+                  width: MediaQuery.of(context).size.width/1,
+                  height: MediaQuery.of(context).size.height/1.5,
+                      child: ListView.builder(
+                                        itemCount: allTickets.length,
+                                        itemBuilder: (context, index) {
+                      final ticket = allTickets[index];
+                      return  Card(
+                        margin: EdgeInsets.all(8.0),
+                        child: ListTile(
+                          leading: Icon(Icons.assignment, color: Colors.blue),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.tickets_fill,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'Emp Name',
-                                          style:  GoogleFonts.quicksand(fontWeight: FontWeight.bold),
+                             // Text('Employee Name: ${ticket.empname.toString()}',),
+                              Text('Number of Days: ${ticket.noOfDays.toString()}'),
+                              Text('Leave From: ${DateTimeSet(ticket.leaveFrom)} to ${DateTimeSet(ticket.leaveTo)}'),
+                              Text('Reasons: ${ticket.reasons}'),
+                              Text('${ticket.headRecom=="A"?"Approved":ticket.headRecom=="R"?"Rejected":"waiting for approval"}'),
+                              Text('Leave Type: ${ticket.leaveType}'),
+                              Container(height: 10,),
+                              Row(
+                                children: [
+                               /*   if(loginModels[0].data.role=="HOD")
+                                  Container(
+                                    width: 130,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      child: Center(child: Text('Approve Leave',style: TextStyle(color: Colors.white,fontSize: 12),),),
+                                      onPressed: () {
+                                        final _formKey = GlobalKey<FormState>();
+                                        final _docnoController = TextEditingController();
+                                        final _authtypeController = TextEditingController();
 
-                                        ),
-                                      ),
-                                      Container(
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text('Approve Leave',style: TextStyle(color: Colors.black),),
+                                              actions: <Widget>[
+                                                Padding(
+                                                  padding: EdgeInsets.all(16.0),
+                                                  child: Form(
+                                                    key: _formKey,
+                                                    child: Column(
+                                                      children: <Widget>[
 
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['empname'], style: GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
+                                                        TextFormField(
+                                                          controller: _authtypeController,
+                                                          decoration: InputDecoration(labelText: 'Leave Type (A/R)'),
+                                                          validator: (value) {
+                                                            if (value == null || value.isEmpty) {
+                                                              return 'Please enter an Leave Type';
+                                                            }
+                                                            if (value != 'A' && value != 'R') {
+                                                              return 'Leave Type type must be A or R';
+                                                            }
+                                                            return null;
+                                                          },
+                                                        ),
+                                                        SizedBox(height: 20),
+                                                        ElevatedButton(
+                                                          onPressed: () {
+                                                            if (_formKey.currentState?.validate() ?? false) {
+                                                              approveLeave(ticket.recordId.toString(), _authtypeController.text,loginModels[0].jwt);
+                                                            }
+                                                          },
+                                                          child: Text('Approve Leave',style: TextStyle(color: Colors.black),),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ButtonStyle(
+                                          backgroundColor: MaterialStateProperty.all(Colors.green),
+
+                                          textStyle: MaterialStateProperty.all(TextStyle(fontSize: 13,color: Colors.white))),
+                                    ),
+                                  ),*/
+                                  Container(width: 5,),
+
+                                  if(ticket.headRecom=="N")
+                                  Container(
+                                    width: 120,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      child: Center(child: Text('Cancel Leave',style: TextStyle(color: Colors.white,fontSize: 12),),),
+                                      onPressed: () {
+                                        QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.confirm,
+                                          text: 'Cancel Leave?',
+                                          confirmBtnText: 'Yes',
+                                         onConfirmBtnTap: () {
+                                           CancelLeave(ticket.recordId.toString(),loginModels[0].jwt);
+                                         },
+                                          cancelBtnText: 'No',
+                                          confirmBtnColor: Colors.green,
+                                        );// That's it to display an alert, use other properties to customize.
+                                        //approveLeave(ticket.recordId.toString(), _authtypeController.text,loginModels[0].jwt);
+                                      },
+                                      style: ButtonStyle(
+                                          backgroundColor: MaterialStateProperty.all(Colors.red),
+
+                                          textStyle: MaterialStateProperty.all(TextStyle(fontSize: 13,color: Colors.white))),
+                                    ),
+                                  ),
+                                ],
                               ),
-
-
-
                             ],
                           ),
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.text_append,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'No of days',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
+                         // trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                        ),
+                      );
+                                        },
                                       ),
-                                      Container(
-               width: 200,
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['no_of_days'], style: GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold,))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.today,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'Emp Num',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
-                                      ),
-                                      Container(
-
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['empnum'], style:GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.create_solid,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'date of request',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
-                                      ),
-                                      Container(
-
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['date_of_request'], style: GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.music_albums,color: Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'no of days',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
-                                      ),
-                                      Container(
-
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['no_of_days'], style: GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.checkmark_alt,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'reasons',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
-                                      ),
-                                      Container(
-
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['reasons']=="O"?"Open":AllTickets[i]['Status']=="C"?"Closed":"Resolved", style:GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-                          Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                            mainAxisAlignment:
-                            MainAxisAlignment
-                                .start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets
-                                    .only(
-                                    top:
-                                    10.0,
-                                    left:
-                                    10,right: 10,bottom: 10),
-                                child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.wand_rays,color:  Colors.green,),
-                                      Container(width: 10,),
-                                      Container(
-                                        width:
-                                        100,
-                                        child:
-                                        Text(
-                                          'leave_type',
-                                          style: GoogleFonts.quicksand(fontWeight: FontWeight.bold),
-
-                                        ),
-                                      ),
-                                      Container(
-                                        child:
-                                        Text.rich(
-                                          TextSpan(
-                                              children: [
-                                                TextSpan(text: ": ", style: GoogleFonts.quicksand(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                TextSpan(text: AllTickets[i]['leave_type'], style: GoogleFonts.poppins(color: Colors.black,fontWeight:FontWeight.bold))
-                                              ]),
-                                        ),
-                                      )
-                                    ]),
-                              ),
-
-
-
-                            ],
-                          ),
-
-
-                        ],
-                      )),
+                    ),
 
               ],
             ),
@@ -520,4 +416,5 @@ var AllTickets = [];
     // Cancel the timer when the page is disposed
     _timer.cancel();
   }
+
 }
