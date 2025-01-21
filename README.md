@@ -1,7 +1,7 @@
 # employee_self_service
 
 Employee Attandance portal
-
+![Alt text](assets/Loginpage.jpg?raw=true "Title")
 
 ## Getting 
 
